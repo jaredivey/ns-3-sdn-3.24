@@ -30,6 +30,7 @@
 #include "ns3/packet.h"
 #include "ns3/trace-source-accessor.h"
 #include "ns3/udp-socket-factory.h"
+#include "ns3/uinteger.h"
 #include "packet-sink.h"
 
 namespace ns3 {
@@ -55,6 +56,12 @@ PacketSink::GetTypeId (void)
                    TypeIdValue (UdpSocketFactory::GetTypeId ()),
                    MakeTypeIdAccessor (&PacketSink::m_tid),
                    MakeTypeIdChecker ())
+	.AddAttribute ("TotalRxSet",
+				   "The total number of bytes to receive. Once these bytes are received, "
+				   "the simulation will be stopped",
+				   UintegerValue (0),
+				   MakeUintegerAccessor (&PacketSink::m_totalRxSet),
+				   MakeUintegerChecker<uint32_t> ())
     .AddTraceSource ("Rx",
                      "A packet has been received",
                      MakeTraceSourceAccessor (&PacketSink::m_rxTrace),
@@ -62,6 +69,8 @@ PacketSink::GetTypeId (void)
   ;
   return tid;
 }
+
+uint32_t PacketSink::g_totalRx = 0;
 
 PacketSink::PacketSink ()
 {
@@ -169,6 +178,7 @@ void PacketSink::HandleRead (Ptr<Socket> socket)
           break;
         }
       m_totalRx += packet->GetSize ();
+      g_totalRx += packet->GetSize ();
       if (InetSocketAddress::IsMatchingType (from))
         {
           NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds ()
@@ -189,6 +199,11 @@ void PacketSink::HandleRead (Ptr<Socket> socket)
         }
       m_rxTrace (packet, from);
     }
+
+  if (m_totalRxSet && m_totalRxSet <= g_totalRx)
+  {
+	  Simulator::Stop();
+  }
 }
 
 

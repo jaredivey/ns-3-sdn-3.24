@@ -130,6 +130,9 @@ private:
   uint32_t        m_totalRx;      //!< Total bytes received
   TypeId          m_tid;          //!< Protocol TypeId
 
+  static uint32_t g_totalRx;
+  uint32_t m_totalRxSet;
+
   /// Traced Callback: received packets, source address.
   TracedCallback<Ptr<const Packet>, const Address &> m_rxTrace;
 
