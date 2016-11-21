@@ -84,6 +84,9 @@ SdnSwitch::SdnSwitch () : m_flowTable(this)
   m_switchFeatures.n_buffers = MAX_BUFFERS;
 
   m_kernel = false;
+
+  m_pendingPacket = 0;
+  m_pendingBytes = 0;
 }
 
 SdnSwitch::~SdnSwitch ()
@@ -287,72 +290,102 @@ SdnSwitch::ConnectionFailed (Ptr<Socket> socket)
 void SdnSwitch::HandleReadController (Ptr<Socket> socket)
 {
   NS_LOG_FUNCTION (this << socket);
-  NS_LOG_INFO (Simulator::Now().GetSeconds());
-  Ptr<Packet> packet;
-  Address from;
-  while ((packet = socket->RecvFrom (from)))
-    {
-      if (InetSocketAddress::IsMatchingType (from))
-        {
-          NS_LOG_INFO ("At time " << Simulator::Now ().GetSeconds () << "s server received " << packet->GetSize () << " bytes from " <<
-                       InetSocketAddress::ConvertFrom (from).GetIpv4 () << " port " <<
-                       InetSocketAddress::ConvertFrom (from).GetPort ());
-        }
+  uint32_t rxBytesAvailable = 0;
+    do
+      {
+        if (!m_pendingBytes)
+          {
+            // Starting with a new OpenFlow message.
+            // At least 8 bytes (OpenFlow header) must be available.
+            rxBytesAvailable = socket->GetRxAvailable ();
+            if (rxBytesAvailable < 8)
+              {
+                return; // Wait for more bytes.
+              }
 
-      NS_ASSERT (m_controllerConn->get_socket () == socket);
+            // Receive the OpenFlow header and get the OpenFlow message size
+            uint8_t header[8];
+            m_pendingPacket = socket->RecvFrom (sizeof(header), 0, m_pendingFrom);
+            m_pendingPacket->CopyData ((uint8_t*)&header, sizeof(header));
+            fluid_msg::OFMsg* msg = new fluid_msg::OFMsg (header);
+            m_pendingBytes = msg->length() - sizeof(header);
+          }
 
-      packet->RemoveAllPacketTags ();
-      packet->RemoveAllByteTags ();
+        // Receive the remaining OpenFlow message
+        if (m_pendingBytes)
+          {
+            if (rxBytesAvailable < m_pendingBytes)
+              {
+                // We need to wait for more bytes
+                return;
+              }
+            m_pendingPacket->AddAtEnd (socket->Recv (m_pendingBytes, 0));
+          }
 
-      NS_LOG_DEBUG ("Switch recv " << packet->GetSize () << " bytes");
+        if (InetSocketAddress::IsMatchingType (m_pendingFrom))
+          {
+            Ipv4Address ipv4 = InetSocketAddress::ConvertFrom (m_pendingFrom).GetIpv4 ();
+            uint16_t port = InetSocketAddress::ConvertFrom (m_pendingFrom).GetPort ();
+            NS_LOG_LOGIC ("At time " << Simulator::Now ().GetSeconds () <<
+                          "s the OpenFlow switch received " << m_pendingPacket->GetSize () <<
+                          " bytes from controller " << ipv4 <<
+                          " socket " << socket <<
+                          " port " << port);
 
-      uint8_t buffer[packet->GetSize ()];
-      packet->CopyData (buffer,packet->GetSize ());
-      fluid_msg::OFMsg* message = new fluid_msg::OFMsg (buffer);
+            NS_ASSERT (m_controllerConn->get_socket () == socket);
 
-      //These handlers should return number of bytes sent
-      if (message->type () == fluid_msg::of10::OFPT_HELLO)
-        {
-          OFHandle_Hello_Request(message);
-        }
-      if (message->type () == fluid_msg::of10::OFPT_FEATURES_REQUEST)
-        {
-          OFHandle_Feature_Request(message);
-        }
-      if (message->type () == fluid_msg::of10::OFPT_GET_CONFIG_REQUEST)
-        {
-          OFHandle_Get_Config_Request();
-        }
-      if (message->type () == fluid_msg::of10::OFPT_SET_CONFIG)
-        {
-          OFHandle_Set_Config(buffer);
-        }
-      if (message->type () == fluid_msg::of10::OFPT_FLOW_MOD)
-        {
-          OFHandle_Flow_Mod(buffer);
-        }
-//      if (message->type () == fluid_msg::of10::OFPT_PORT_STATUS)
-//        {
-//          OFHandle_Port_Status(buffer);
-//        }
-      if (message->type () == fluid_msg::of10::OFPT_STATS_REQUEST)
-        {
-          OFHandle_Stats_Request(buffer);
-        }
-      if (message->type () == fluid_msg::of10::OFPT_PACKET_OUT)
-        {
-          OFHandle_Packet_Out(buffer);
-        }
-      if (message->type () == fluid_msg::of10::OFPT_PORT_MOD)
-        {
-          OFHandle_Port_Mod(buffer);
-        }
-      if (message->type () == fluid_msg::of10::OFPT_BARRIER_REQUEST)
-        {
-          OFHandle_Barrier_Request(buffer);
-        }
-      delete (message);
-    }
+            m_pendingPacket->RemoveAllPacketTags ();
+            m_pendingPacket->RemoveAllByteTags ();
+
+            uint8_t buffer[m_pendingPacket->GetSize ()];
+            m_pendingPacket->CopyData (buffer,m_pendingPacket->GetSize ());
+            fluid_msg::OFMsg* message = new fluid_msg::OFMsg (buffer);
+
+            //These handlers should return number of bytes sent
+            if (message->type () == fluid_msg::of10::OFPT_HELLO)
+              {
+                OFHandle_Hello_Request(message);
+              }
+            if (message->type () == fluid_msg::of10::OFPT_FEATURES_REQUEST)
+              {
+                OFHandle_Feature_Request(message);
+              }
+            if (message->type () == fluid_msg::of10::OFPT_GET_CONFIG_REQUEST)
+              {
+                OFHandle_Get_Config_Request();
+              }
+            if (message->type () == fluid_msg::of10::OFPT_SET_CONFIG)
+              {
+                OFHandle_Set_Config(buffer);
+              }
+            if (message->type () == fluid_msg::of10::OFPT_FLOW_MOD)
+              {
+                OFHandle_Flow_Mod(buffer);
+              }
+            if (message->type () == fluid_msg::of10::OFPT_STATS_REQUEST)
+              {
+                OFHandle_Stats_Request(buffer);
+              }
+            if (message->type () == fluid_msg::of10::OFPT_PACKET_OUT)
+              {
+                OFHandle_Packet_Out(buffer);
+              }
+            if (message->type () == fluid_msg::of10::OFPT_PORT_MOD)
+              {
+                OFHandle_Port_Mod(buffer);
+              }
+            if (message->type () == fluid_msg::of10::OFPT_BARRIER_REQUEST)
+              {
+                OFHandle_Barrier_Request(buffer);
+              }
+            delete (message);
+          }
+        m_pendingPacket = 0;
+        m_pendingBytes = 0;
+
+        // Repeat until socket buffer gets empty
+      }
+    while (socket->GetRxAvailable ());
 }
 
 //Handles a packet from a non-controller

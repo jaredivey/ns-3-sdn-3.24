@@ -377,6 +377,10 @@ protected:
   Ptr<UniformRandomVariable> m_bufferIdStream;
   std::map< uint32_t, Ptr<Packet> > m_packetBuffers;
 
+  Ptr<Packet> m_pendingPacket;
+  uint32_t m_pendingBytes;
+  Address m_pendingFrom;
+
   bool m_kernel; //!< Use the Linux kernel stack (DCE-only)
 
   virtual void ConnectionSucceeded (Ptr<Socket> socket);
