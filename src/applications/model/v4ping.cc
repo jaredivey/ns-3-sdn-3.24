@@ -54,9 +54,18 @@ V4Ping::GetTypeId (void)
                    MakeTimeAccessor (&V4Ping::m_interval),
                    MakeTimeChecker ())
     .AddAttribute ("Size", "The number of data bytes to be sent, real packet will be 8 (ICMP) + 20 (IP) bytes longer.",
-                   UintegerValue (56),
-                   MakeUintegerAccessor (&V4Ping::m_size),
-                   MakeUintegerChecker<uint32_t> (16))
+				   UintegerValue (56),
+				   MakeUintegerAccessor (&V4Ping::m_size),
+				   MakeUintegerChecker<uint32_t> (16))
+    .AddAttribute ("Count", "The number of pings to be sent.",
+				   UintegerValue (0), // Implies unlimited
+				   MakeUintegerAccessor (&V4Ping::m_count),
+				   MakeUintegerChecker<uint32_t> (0))
+	.AddAttribute ("Stopper",
+				   "App can stop simulator.",
+				   BooleanValue (false),
+				   MakeBooleanAccessor (&V4Ping::m_stopper),
+				   MakeBooleanChecker ())
     .AddTraceSource ("Rtt",
                      "The rtt calculated by the ping.",
                      MakeTraceSourceAccessor (&V4Ping::m_traceRtt),
@@ -154,11 +163,16 @@ V4Ping::Receive (Ptr<Socket> socket)
 
                       if (m_verbose)
                         {
-                          std::cout << recvSize << " bytes from " << realFrom.GetIpv4 () << ":"
+                          std::cout << GetNode()->GetId() << ": " << recvSize << " bytes from " << realFrom.GetIpv4 () << ":"
                                     << " icmp_seq=" << echo.GetSequenceNumber ()
                                     << " ttl=" << (unsigned)ipv4.GetTtl ()
                                     << " time=" << delta.GetMilliSeconds () << " ms\n";
                         }
+
+                      if (m_count && m_count <= m_recv)
+                      {
+                    	  Simulator::ScheduleNow (&V4Ping::StopApplication, this);
+                      }
                     }
                 }
               delete[] buf;
@@ -268,7 +282,7 @@ V4Ping::StopApplication (void)
     {
       std::ostringstream os;
       os.precision (4);
-      os << "--- " << m_remote << " ping statistics ---\n" 
+      os << "--- " << GetNode()->GetId() << " " << m_remote << " ping statistics ---\n"
          << m_seq << " packets transmitted, " << m_recv << " received, "
          << ((m_seq - m_recv) * 100 / m_seq) << "% packet loss, "
          << "time " << (Simulator::Now () - m_started).GetMilliSeconds () << "ms\n";
@@ -279,6 +293,10 @@ V4Ping::StopApplication (void)
            << " ms\n";
       std::cout << os.str ();
     }
+  if (m_stopper)
+  {
+	  Simulator::ScheduleNow(&Simulator::Stop);
+  }
 }
 
 

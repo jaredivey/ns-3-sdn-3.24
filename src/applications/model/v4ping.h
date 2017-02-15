@@ -103,6 +103,8 @@ private:
    * The default is 56, which translates into 64 ICMP data bytes when combined with the 8 bytes of ICMP header data.
    */
   uint32_t m_size;
+  uint32_t m_count;
+  bool m_stopper;
   /// The socket we send packets from
   Ptr<Socket> m_socket;
   /// ICMP ECHO sequence number

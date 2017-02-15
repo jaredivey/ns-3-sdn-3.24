@@ -121,6 +121,8 @@ public:
   */
   int64_t AssignStreams (int64_t stream);
 
+  uint32_t        m_totBytes;     //!< Total bytes sent so far
+
 protected:
   virtual void DoDispose (void);
 private:
@@ -159,7 +161,6 @@ private:
   uint32_t        m_residualBits; //!< Number of generated, but not sent, bits
   Time            m_lastStartTime; //!< Time last packet sent
   uint32_t        m_maxBytes;     //!< Limit total number of bytes sent
-  uint32_t        m_totBytes;     //!< Total bytes sent so far
   EventId         m_startStopEvent;     //!< Event id for next start or stop event
   EventId         m_sendEvent;    //!< Event id of pending "send packet" event
   TypeId          m_tid;          //!< Type of the socket used
