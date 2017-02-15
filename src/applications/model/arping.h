@@ -14,8 +14,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef V4PING_H
-#define V4PING_H
+#ifndef ARPING_H
+#define ARPING_H
 
 #include "ns3/application.h"
 #include "ns3/traced-callback.h"
@@ -28,19 +28,21 @@ namespace ns3 {
 
 class Socket;
 
+class NetDevice;
+
 /**
  * \ingroup applications
- * \defgroup v4ping V4Ping
+ * \defgroup arping ArPing
  */
 
 /**
- * \ingroup v4ping
+ * \ingroup arping
  * \brief an application which sends one ICMP ECHO request, waits for a REPLYs
  *        and reports the calculated RTT.
  *
  * Note: The RTT calculated is reported through a trace source.
  */
-class V4Ping : public Application
+class ArPing : public Application
 {
 public:
   /**
@@ -52,8 +54,10 @@ public:
   /**
    * create a pinger applications
    */
-  V4Ping ();
-  virtual ~V4Ping ();
+  ArPing ();
+  virtual ~ArPing ();
+
+  void SetDevice (Ptr<NetDevice> dev) { m_netdevice = dev; }
 
 private:
   /**
@@ -88,7 +92,9 @@ private:
    *
    * This function is called by lower layers through a callback.
    */
-  void Receive (Ptr<Socket> socket);
+  bool Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
+		  uint16_t protocol, const Address &from,
+		  const Address &to, NetDevice::PacketType packetType);
   /**
    * \brief Send one Ping (ICMP ECHO) to the destination
    */
@@ -96,6 +102,9 @@ private:
 
   /// Remote address
   Ipv4Address m_remote;
+  Address m_dstAddr;
+  Address m_srcAddr;
+  Ipv4Address m_srcIpAddr;
   /// Wait  interval  seconds between sending each packet
   Time m_interval;
   /** 
@@ -106,13 +115,13 @@ private:
   uint32_t m_count;
   /// The socket we send packets from
   Ptr<Socket> m_socket;
+  Ptr<NetDevice> m_netdevice;
   /// ICMP ECHO sequence number
-  uint16_t m_seq;
+  uint32_t m_seq;
   /// TracedCallback for RTT measured by ICMP ECHOs
   TracedCallback<Time> m_traceRtt;
   /// produce ping-style output if true
   bool m_verbose;
-  bool m_stopper;
   /// received packets counter
   uint32_t m_recv;
   /// Start time to report total ping time
@@ -122,9 +131,9 @@ private:
   /// Next packet will be sent
   EventId m_next;
   /// All sent but not answered packets. Map icmp seqno -> when sent
-  std::map<uint16_t, Time> m_sent;
+  std::map<uint32_t, Time> m_sent;
 };
 
 } // namespace ns3
 
-#endif /* V4PING_H */
+#endif /* ARPING_H */
