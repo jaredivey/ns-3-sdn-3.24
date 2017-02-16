@@ -108,6 +108,20 @@ public:
    */
   int64_t AssignStreams (int64_t stream);
 
+  /**
+   * \brief Finds the cache associated with a NetDevice
+   * \param device the NetDevice
+   * \returns the ARP cache, or null if no cache is found
+   */
+  Ptr<ArpCache> FindCache (Ptr<NetDevice> device);
+
+  /**
+   * \brief Send an ARP request to an host
+   * \param cache the ARP cache to use
+   * \param to the destination IP
+   */
+  void SendArpRequest (Ptr<const ArpCache>cache, Ipv4Address to);
+
 protected:
   virtual void DoDispose (void);
   /*
@@ -132,20 +146,6 @@ private:
    * \returns
    */
   ArpL3Protocol &operator = (const ArpL3Protocol &o);
-
-  /**
-   * \brief Finds the cache associated with a NetDevice
-   * \param device the NetDevice
-   * \returns the ARP cache, or null if no cache is found
-   */
-  Ptr<ArpCache> FindCache (Ptr<NetDevice> device);
-
-  /**
-   * \brief Send an ARP request to an host
-   * \param cache the ARP cache to use
-   * \param to the destination IP
-   */
-  void SendArpRequest (Ptr<const ArpCache>cache, Ipv4Address to);
   /**
    * \brief Send an ARP reply to an host
    * \param cache the ARP cache to use

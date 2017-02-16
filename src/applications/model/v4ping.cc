@@ -44,15 +44,24 @@ V4Ping::GetTypeId (void)
                    Ipv4AddressValue (),
                    MakeIpv4AddressAccessor (&V4Ping::m_remote),
                    MakeIpv4AddressChecker ())
-    .AddAttribute ("Verbose",
-                   "Produce usual output.",
+	.AddAttribute ("Verbose",
+				   "Produce usual output.",
+				   BooleanValue (false),
+				   MakeBooleanAccessor (&V4Ping::m_verbose),
+				   MakeBooleanChecker ())
+    .AddAttribute ("Stopper",
+                   "Can stop simulator.",
                    BooleanValue (false),
-                   MakeBooleanAccessor (&V4Ping::m_verbose),
+                   MakeBooleanAccessor (&V4Ping::m_stopper),
                    MakeBooleanChecker ())
     .AddAttribute ("Interval", "Wait  interval  seconds between sending each packet.",
                    TimeValue (Seconds (1)),
                    MakeTimeAccessor (&V4Ping::m_interval),
                    MakeTimeChecker ())
+	.AddAttribute ("Count", "The number of pings to send.",
+				   UintegerValue (0),
+				   MakeUintegerAccessor (&V4Ping::m_count),
+				   MakeUintegerChecker<uint32_t> (0))
     .AddAttribute ("Size", "The number of data bytes to be sent, real packet will be 8 (ICMP) + 20 (IP) bytes longer.",
 				   UintegerValue (56),
 				   MakeUintegerAccessor (&V4Ping::m_size),
@@ -77,9 +86,11 @@ V4Ping::GetTypeId (void)
 V4Ping::V4Ping ()
   : m_interval (Seconds (1)),
     m_size (56),
+    m_count (0),
     m_socket (0),
     m_seq (0),
     m_verbose (false),
+    m_stopper (false),
     m_recv (0)
 {
   NS_LOG_FUNCTION (this);

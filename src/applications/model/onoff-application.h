@@ -120,6 +120,7 @@ public:
   * \return the number of stream indices assigned by this model
   */
   int64_t AssignStreams (int64_t stream);
+  uint32_t        m_totBytes;     //!< Total bytes sent so far
 
   uint32_t        m_totBytes;     //!< Total bytes sent so far
 
