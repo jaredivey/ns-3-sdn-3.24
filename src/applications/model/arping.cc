@@ -297,7 +297,7 @@ ArPing::StopApplication (void)
   Ptr<CsmaNetDevice> csmaDevice = DynamicCast<CsmaNetDevice> (m_netdevice);
   if (csmaDevice)
   {
-	  csmaDevice->SetPromiscReceiveCallback(MakeNullCallback());
+	  csmaDevice->SetPromiscReceiveCallback(MakeCallback(&ArPing::NullReceive, this));
   }
 
   if (m_verbose)

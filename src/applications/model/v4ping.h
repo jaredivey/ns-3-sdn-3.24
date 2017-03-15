@@ -104,7 +104,6 @@ private:
    */
   uint32_t m_size;
   uint32_t m_count;
-  bool m_stopper;
   /// The socket we send packets from
   Ptr<Socket> m_socket;
   /// ICMP ECHO sequence number

@@ -66,15 +66,6 @@ V4Ping::GetTypeId (void)
 				   UintegerValue (56),
 				   MakeUintegerAccessor (&V4Ping::m_size),
 				   MakeUintegerChecker<uint32_t> (16))
-    .AddAttribute ("Count", "The number of pings to be sent.",
-				   UintegerValue (0), // Implies unlimited
-				   MakeUintegerAccessor (&V4Ping::m_count),
-				   MakeUintegerChecker<uint32_t> (0))
-	.AddAttribute ("Stopper",
-				   "App can stop simulator.",
-				   BooleanValue (false),
-				   MakeBooleanAccessor (&V4Ping::m_stopper),
-				   MakeBooleanChecker ())
     .AddTraceSource ("Rtt",
                      "The rtt calculated by the ping.",
                      MakeTraceSourceAccessor (&V4Ping::m_traceRtt),

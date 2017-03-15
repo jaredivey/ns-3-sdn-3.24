@@ -19,6 +19,7 @@
 
 #include "ns3/application.h"
 #include "ns3/traced-callback.h"
+#include "ns3/callback.h"
 #include "ns3/nstime.h"
 #include "ns3/average.h"
 #include "ns3/simulator.h"
@@ -95,6 +96,9 @@ private:
   bool Receive (Ptr<NetDevice> device, Ptr<const Packet> packet,
 		  uint16_t protocol, const Address &from,
 		  const Address &to, NetDevice::PacketType packetType);
+  bool NullReceive (Ptr<NetDevice> device, Ptr<const Packet> packet,
+		  uint16_t protocol, const Address &from,
+		  const Address &to, NetDevice::PacketType packetType) { return true; }
   /**
    * \brief Send one Ping (ICMP ECHO) to the destination
    */
